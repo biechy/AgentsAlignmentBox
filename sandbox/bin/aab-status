@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+"""What is live in the sandbox, as one JSON line, for the dashboard (via aab-launch):
+open SSH sessions, running Claude Code / Codex processes (interactive or headless),
+and the headless runs started from the dashboard. An agent only shows up in the log
+at its first model call; this tells the operator what is running before that.
+"""
+import json
+import os
+import re
+import subprocess
+
+RUNS = "/workspace/.aab-runs"
+CLI = re.compile(r"(^|/)(claude|codex)$")
+
+ps = subprocess.run(["ps", "-u", "agent", "-o", "pid=,ppid=,etimes=,tty=,args="],
+                    capture_output=True, text=True).stdout
+procs = []
+for line in ps.splitlines():
+    parts = line.split(None, 4)
+    if len(parts) == 5:
+        pid, ppid, etimes, tty, args = parts
+        procs.append({"pid": int(pid), "ppid": int(ppid), "since_s": int(etimes),
+                      "tty": tty, "args": args})
+
+
+def cli_of(p):
+    """claude / codex when the process is one of the CLIs (node wrapper or binary)."""
+    words = p["args"].split()[:2]
+    for w in words:
+        m = CLI.search(w)
+        if m:
+            return m.group(2)
+    return None
+
+
+sessions = [{"tty": p["args"].split("@", 1)[1], "since_s": p["since_s"]} for p in procs
+            if p["args"].startswith("sshd: agent@") and not p["args"].endswith("@notty")]
+cli_pids = {p["pid"]: cli_of(p) for p in procs if cli_of(p)}
+clis = []
+for p in procs:
+    name = cli_pids.get(p["pid"])
+    if not name or cli_pids.get(p["ppid"]):        # the codex binary under its node wrapper
+        continue
+    words = p["args"].split()
+    headless = p["tty"] == "?" or "-p" in words or "--print" in words or "exec" in words[1:3]
+    clis.append({"pid": p["pid"], "cli": name, "tty": p["tty"], "since_s": p["since_s"],
+                 "headless": headless})
+runs = []
+if os.path.isdir(RUNS):
+    for f in sorted(os.listdir(RUNS)):
+        if not f.endswith(".pid"):
+            continue
+        try:
+            pid = int(open(os.path.join(RUNS, f)).read().strip())
+            os.kill(pid, 0)
+        except (OSError, ValueError):
+            continue
+        runs.append({"run": f[:-4], "pid": pid})
+print(json.dumps({"ok": True, "sessions": sessions, "clis": clis, "runs": runs}))

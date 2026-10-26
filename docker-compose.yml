@@ -1,0 +1,210 @@
+# AgentsAlignmentBox (AAB): `docker compose up -d --build` starts everything.
+#
+#   you ──ssh :2222──▶ sandbox-ssh ──▶ sandbox (Claude Code, Codex, sub-agents)
+#                                        │ agentnet: internal, no route out
+#                                        ▼
+#                                      proxy (mitmproxy) ──▶ internet
+#                                        │ writes every model call, tool call, request
+#                                        ▼
+#   you ──ssh :2223──▶ monitor ──────▶ db (Postgres, schema obs) ◀── web :4141 (dashboard,
+#                     (rules, TabPFN on   ▲                              kill switch)
+#                      CPU, Claude        └── proxy reads the kill switch
+#                      reviewer)
+#
+# The agents only see the proxy (and the SSH gateway, which only leads back to the
+# sandbox). They cannot reach the database, the monitor, the dashboard or the host.
+# All host ports listen on 127.0.0.1 unless AAB_BIND says otherwise.
+
+name: aab
+
+x-hardening: &hardening
+  security_opt: ["no-new-privileges:true"]
+  cap_drop: [ALL]
+
+x-sshd-caps: &sshd-caps
+  # sshd and the entrypoints only; the login users run without capabilities.
+  cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID, SYS_CHROOT, KILL, NET_BIND_SERVICE, AUDIT_WRITE]
+
+services:
+  # One-shot: database passwords and the dashboard's launcher key, generated once
+  # into the `secrets` volume (never mounted in the sandbox).
+  init:
+    build: ./init
+    image: aab-init
+    volumes:
+      - secrets:/run/aab-secrets
+      - launcher-pub:/launcher-pub
+    network_mode: none
+    restart: "no"
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: obs_admin
+      POSTGRES_PASSWORD_FILE: /run/aab-secrets/db_admin.pw
+      POSTGRES_DB: obs
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      - secrets:/run/aab-secrets:ro
+    networks: [dbnet]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U obs_admin -d obs"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      init: {condition: service_completed_successfully}
+    restart: unless-stopped
+
+  proxy:
+    build: ./proxy
+    image: aab-proxy
+    environment:
+      OBS_BLOCKED_HOSTS: db,postgres,localhost,proxy,monitor,web,sandbox-ssh
+    volumes:
+      - mitm-conf:/data/mitm          # CA private key: proxy only
+      - ca-public:/ca-public          # CA public certificate, shared with the sandbox
+      - secrets:/run/aab-secrets:ro
+    networks: [agentnet, egress, dbnet]
+    <<: *hardening
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD-SHELL", "test -s /ca-public/mitmproxy-ca-cert.pem"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  # Where agents work. Log in with `ssh -p 2222 agent@localhost`.
+  sandbox:
+    build:
+      context: .
+      dockerfile: sandbox/Dockerfile
+      args:
+        CLAUDE_CODE_VERSION: ${CLAUDE_CODE_VERSION:-latest}
+        CODEX_VERSION: ${CODEX_VERSION:-latest}
+        INSTALL_CODEX: ${INSTALL_CODEX:-1}
+    image: aab-sandbox
+    hostname: sandbox
+    environment:
+      AAB_SSH_PUBKEY: ${AAB_SSH_PUBKEY:-}
+      AAB_SSH_PASSWORD: ${AAB_SSH_PASSWORD:-}
+      AAB_SSH_PORT: ${AAB_SSH_PORT:-2222}
+      AAB_WEB_PORT: ${AAB_WEB_PORT:-4141}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      HTTP_PROXY: http://proxy:8080
+      HTTPS_PROXY: http://proxy:8080
+      http_proxy: http://proxy:8080
+      https_proxy: http://proxy:8080
+      NO_PROXY: localhost,127.0.0.1
+      no_proxy: localhost,127.0.0.1
+      NODE_EXTRA_CA_CERTS: /ca-public/mitmproxy-ca-cert.pem
+      SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+      REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+      PIP_CERT: /etc/ssl/certs/ca-certificates.crt
+      CODEX_CA_CERTIFICATE: /etc/ssl/certs/ca-certificates.crt
+    volumes:
+      - ca-public:/ca-public:ro
+      - launcher-pub:/etc/aab/launcher:ro
+      - sandbox-home:/home/agent       # logins, history, settings
+      - sandbox-hostkeys:/etc/ssh/keys
+      - ./workspace:/workspace
+    networks: [agentnet]
+    <<: [*hardening, *sshd-caps]
+    depends_on:
+      proxy: {condition: service_healthy}
+    restart: unless-stopped
+
+  # Docker does not publish ports of a container whose only network is internal: this
+  # relay publishes the sandbox's SSH port. It only forwards to sandbox:22.
+  sandbox-ssh:
+    image: alpine/socat:1.8.0.3
+    command: ["TCP-LISTEN:2222,fork,reuseaddr", "TCP:sandbox:22"]
+    ports:
+      - "${AAB_BIND:-127.0.0.1}:${AAB_SSH_PORT:-2222}:2222"
+    networks: [agentnet, ingress]
+    <<: *hardening
+    depends_on: [sandbox]
+    restart: unless-stopped
+
+  # The alignment monitor. Log in with `ssh -p 2223 monitor@localhost` (once, to run
+  # `claude` and /login with your Claude plan). On dbnet + egress, never agentnet.
+  monitor:
+    build:
+      context: .
+      dockerfile: monitor/Dockerfile
+      args:
+        CLAUDE_CODE_VERSION: ${CLAUDE_CODE_VERSION:-latest}
+        INSTALL_TABPFN: ${INSTALL_TABPFN:-1}
+    image: aab-monitor
+    hostname: monitor
+    environment:
+      AAB_SSH_PUBKEY: ${AAB_SSH_PUBKEY:-}
+      AAB_SSH_PASSWORD: ${AAB_SSH_PASSWORD:-}
+      AAB_MONITOR_SSH_PORT: ${AAB_MONITOR_SSH_PORT:-2223}
+      MONITOR_BACKEND: ${MONITOR_BACKEND:-claude-code}
+      MONITOR_MODEL: ${MONITOR_MODEL:-sonnet}
+      MONITOR_API_MODEL: ${MONITOR_API_MODEL:-claude-opus-5-5}
+      MONITOR_EFFORT: ${MONITOR_EFFORT:-high}
+      MONITOR_TRIGGER: ${MONITOR_TRIGGER:-activity}
+      MONITOR_INTERVAL_S: ${MONITOR_INTERVAL_S:-60}
+      MONITOR_AUTO_KILL: ${MONITOR_AUTO_KILL:-off}
+      MONITOR_TABULAR: ${MONITOR_TABULAR:-tabpfn}
+      MONITOR_TABULAR_THRESHOLD: ${MONITOR_TABULAR_THRESHOLD:-0.6}
+      MONITOR_ANTHROPIC_API_KEY: ${MONITOR_ANTHROPIC_API_KEY:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${MONITOR_CLAUDE_CODE_OAUTH_TOKEN:-}
+    volumes:
+      - secrets:/run/aab-secrets:ro
+      - monitor-home:/home/monitor     # Claude login of the monitor
+      - monitor-state:/state
+      - monitor-hostkeys:/etc/ssh/keys
+    ports:
+      - "${AAB_BIND:-127.0.0.1}:${AAB_MONITOR_SSH_PORT:-2223}:22"
+    networks: [dbnet, egress]
+    <<: [*hardening, *sshd-caps]
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+
+  # Dashboard: http://localhost:4141
+  web:
+    build: ./web
+    image: aab-web
+    environment:
+      AAB_WEB_PASSWORD: ${AAB_WEB_PASSWORD:-}
+      AAB_SSH_PORT: ${AAB_SSH_PORT:-2222}                 # shown in the dashboard's hints
+      AAB_MONITOR_SSH_PORT: ${AAB_MONITOR_SSH_PORT:-2223}
+    volumes:
+      - secrets:/run/aab-secrets:ro
+    ports:
+      - "${AAB_BIND:-127.0.0.1}:${AAB_WEB_PORT:-4141}:4141"
+    networks: [dbnet, ingress]
+    <<: *hardening
+    depends_on:
+      db: {condition: service_healthy}
+    restart: unless-stopped
+
+networks:
+  agentnet:
+    internal: true                    # no direct internet: everything goes through the proxy
+  egress: {}
+  dbnet:
+    internal: true                    # database traffic only
+  ingress: {}                         # published ports of the SSH relay and the dashboard
+
+volumes:
+  secrets:
+  db-data:
+  mitm-conf:
+  ca-public:
+  launcher-pub:
+  sandbox-home:
+  sandbox-hostkeys:
+  monitor-home:
+  monitor-state:
+  monitor-hostkeys:

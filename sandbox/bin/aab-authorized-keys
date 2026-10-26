@@ -1,0 +1,6 @@
+#!/bin/sh
+# sshd AuthorizedKeysCommand: the dashboard's launcher key, which may only run aab-launch.
+[ "$1" = agent ] || exit 0
+f=/etc/aab/launcher/launcher.pub
+[ -s "$f" ] && printf 'restrict,command="/usr/local/bin/aab-launch" %s\n' "$(head -n1 "$f")"
+exit 0

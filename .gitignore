@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+*.bak
+workspace/*
+!workspace/.gitkeep
+__pycache__/
+.pytest_cache/

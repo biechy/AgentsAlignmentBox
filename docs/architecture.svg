@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 940" font-family="Helvetica,Arial" font-size="14">
+<defs>
+  <marker id="a-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#0c8599" stroke-width="2"/></marker>
+  <marker id="a-orange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#e8590c" stroke-width="2"/></marker>
+  <marker id="a-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#495057" stroke-width="2"/></marker>
+  <marker id="a-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#2f9e44" stroke-width="2"/></marker>
+  <marker id="a-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#e03131" stroke-width="2"/></marker>
+  <marker id="a-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#9c36b5" stroke-width="2"/></marker>
+  <marker id="a-pink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#c2255c" stroke-width="2"/></marker>
+  <marker id="a-indigo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#3b5bdb" stroke-width="2"/></marker>
+  <path id="robot" d="M6 6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2zm6-4v2m-3 8v9m6-9v9M5 16l4-2m6 0l4 2M9 18h6M10 8v.01M14 8v.01"/>
+  <path id="world" d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0M3.6 9h16.8M3.6 15h16.8M11.5 3a17 17 0 0 0 0 18M12.5 3a17 17 0 0 1 0 18"/>
+</defs>
+<rect width="1320" height="940" fill="#fff"/>
+
+<text x="40" y="52" fill="#1e1e1e" font-size="26">AgentsAlignmentBox — who did what on the network, and who can stop it</text>
+<text x="40" y="80" fill="#868e96" font-size="14">One docker compose. The agents only see the proxy; everything below the dashed line is invisible to them.</text>
+
+<!-- user -->
+<path transform="translate(54,322) scale(3.0)" d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" fill="none" stroke="#0c8599" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="90" y="412" fill="#1e1e1e" font-size="15" text-anchor="middle">you</text>
+
+<!-- sandbox -->
+<rect x="210" y="150" width="450" height="350" rx="10" fill="#e7f5ff" stroke="#1971c2" stroke-width="2"/>
+<text x="226" y="174" fill="#1971c2">sandbox · agentnet (no route out)</text>
+<text x="226" y="194" fill="#1971c2" font-size="12">Claude Code · Codex · one session tag per SSH login</text>
+<use href="#robot" transform="translate(394,208) scale(3.5)" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="436" y="308" fill="#1e1e1e" font-size="13" text-anchor="middle">orchestrator</text>
+<use href="#robot" transform="translate(244,352) scale(3.0)" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="280" y="440" fill="#1e1e1e" font-size="12" text-anchor="middle">sub-agent</text>
+<use href="#robot" transform="translate(400,352) scale(3.0)" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="436" y="440" fill="#1e1e1e" font-size="12" text-anchor="middle">sub-agent</text>
+<use href="#robot" transform="translate(556,352) scale(3.0)" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="592" y="440" fill="#1e1e1e" font-size="12" text-anchor="middle">claude -p · codex</text>
+<line x1="436" y1="318" x2="282" y2="348" stroke="#495057" stroke-width="2" marker-end="url(#a-gray)"/>
+<line x1="436" y1="318" x2="436" y2="348" stroke="#495057" stroke-width="2" marker-end="url(#a-gray)"/>
+<line x1="436" y1="318" x2="590" y2="348" stroke="#495057" stroke-width="2" marker-end="url(#a-gray)"/>
+<text x="226" y="482" fill="#495057" font-size="12">shell commands and WebFetch carry their tool call's tag</text>
+
+<!-- you -> sandbox -->
+<line x1="128" y1="356" x2="206" y2="356" stroke="#0c8599" stroke-width="2" marker-end="url(#a-teal)"/>
+<text x="124" y="342" fill="#0c8599" font-size="13">ssh :2222</text>
+
+<!-- proxy -->
+<path transform="translate(830,270) scale(3.3333)" d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3M12 8v3M12 14v.01" fill="none" stroke="#e8590c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="870" y="368" fill="#1e1e1e" font-size="15" text-anchor="middle">proxy</text>
+<text x="870" y="386" fill="#868e96" font-size="12" text-anchor="middle">mitmproxy · attributes</text>
+<text x="870" y="401" fill="#868e96" font-size="12" text-anchor="middle">every request to an agent</text>
+<line x1="662" y1="300" x2="824" y2="300" stroke="#e8590c" stroke-width="2" marker-end="url(#a-orange)"/>
+<text x="676" y="290" fill="#e8590c" font-size="13">all traffic</text>
+<line x1="828" y1="344" x2="664" y2="344" stroke="#e03131" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a-red)"/>
+<text x="672" y="362" fill="#e03131" font-size="12">stopped agent:</text>
+<text x="672" y="377" fill="#e03131" font-size="12">final answer,</text>
+<text x="672" y="392" fill="#e03131" font-size="12">requests refused</text>
+
+<!-- internet -->
+<use href="#world" transform="translate(832,112) scale(3.1667)" fill="none" stroke="#495057" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="870" y="102" fill="#1e1e1e" text-anchor="middle">internet · model APIs</text>
+<line x1="870" y1="266" x2="870" y2="194" stroke="#495057" stroke-width="2" marker-end="url(#a-gray)"/>
+<text x="880" y="236" fill="#495057" font-size="12">egress</text>
+
+<!-- postgres -->
+<path transform="translate(1110,268) scale(3.5)" d="M4 6a8 3 0 1 0 16 0a8 3 0 1 0 -16 0M4 6v6a8 3 0 0 0 16 0V6M4 12v6a8 3 0 0 0 16 0v-6" fill="none" stroke="#2f9e44" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="1152" y="256" fill="#1e1e1e" text-anchor="middle">postgres · activity log</text>
+<text x="1152" y="370" fill="#868e96" font-size="12" text-anchor="middle">model calls · tool calls</text>
+<text x="1152" y="385" fill="#868e96" font-size="12" text-anchor="middle">requests · flags · kill switch</text>
+<line x1="916" y1="300" x2="1102" y2="300" stroke="#2f9e44" stroke-width="2" marker-end="url(#a-green)"/>
+<text x="940" y="290" fill="#2f9e44" font-size="13">writes the log</text>
+<line x1="1102" y1="328" x2="918" y2="328" stroke="#e03131" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#a-red)"/>
+<text x="926" y="346" fill="#e03131" font-size="12">reads the kill switch every second</text>
+
+<!-- outside the sandbox -->
+<rect x="190" y="540" width="1090" height="370" rx="12" fill="#fbfaff" stroke="#9c36b5" stroke-width="2" stroke-dasharray="7 5"/>
+<text x="206" y="563" fill="#9c36b5" font-size="13">outside the sandbox — the agents cannot reach or see anything here</text>
+
+<!-- dashboard -->
+<rect x="220" y="590" width="360" height="170" rx="10" fill="#edf2ff" stroke="#3b5bdb" stroke-width="2"/>
+<path transform="translate(236,606) scale(2.2)" d="M4 4h6v8h-6zM4 16h6v4h-6zM14 12h6v8h-6zM14 4h6v4h-6z" fill="none" stroke="#3b5bdb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="302" y="626" fill="#3b5bdb" font-size="15">dashboard · :4141</text>
+<text x="302" y="648" fill="#1e1e1e" font-size="12">agent trees, alerts, activity</text>
+<text x="302" y="666" fill="#1e1e1e" font-size="12">what runs in the sandbox now</text>
+<text x="236" y="700" fill="#e03131" font-size="13">Stop · Stop with sub-agents · Revive</text>
+<text x="236" y="722" fill="#1e1e1e" font-size="12">confirm / dismiss alerts (they teach</text>
+<text x="236" y="738" fill="#1e1e1e" font-size="12">the tabular model)</text>
+
+<!-- monitor -->
+<rect x="640" y="590" width="610" height="290" rx="10" fill="#f8f0fc" stroke="#9c36b5" stroke-width="2"/>
+<use href="#robot" transform="translate(656,602) scale(3.0)" fill="none" stroke="#9c36b5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="736" y="624" fill="#9c36b5" font-size="15">hidden monitor · every minute</text>
+<text x="736" y="646" fill="#1e1e1e" font-size="12">1. rules (blocked hosts, uploads, dropped tags…)</text>
+<text x="736" y="664" fill="#1e1e1e" font-size="12">2. tabular model scores the new tool calls</text>
+<text x="736" y="682" fill="#1e1e1e" font-size="12">3. Claude reviewer judges each agent against its task</text>
+<text x="736" y="700" fill="#1e1e1e" font-size="12">    and raises flags (optionally stops the agent)</text>
+<use href="#world" transform="translate(664,736) scale(1.8333)" fill="none" stroke="#9c36b5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="712" y="752" fill="#9c36b5" font-size="12">Claude Code on your</text>
+<text x="712" y="768" fill="#9c36b5" font-size="12">Pro / Max plan, or API</text>
+<text x="712" y="784" fill="#868e96" font-size="11">(direct, never through the proxy)</text>
+<rect x="930" y="728" width="300" height="130" rx="10" fill="#fff0f6" stroke="#c2255c" stroke-width="2"/>
+<path transform="translate(944,742) scale(1.8333)" d="M4 19h16M7 16v-6M12 16V5M17 16v-9" fill="none" stroke="#c2255c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="994" y="760" fill="#c2255c" font-size="14">tabular model</text>
+<text x="994" y="778" fill="#1e1e1e" font-size="12">TabPFN on CPU</text>
+<text x="946" y="806" fill="#1e1e1e" font-size="12">scores every tool call, and runs on any</text>
+<text x="946" y="822" fill="#1e1e1e" font-size="12">SQL table as a tool of the reviewer</text>
+<text x="946" y="842" fill="#868e96" font-size="11">learns from your confirmed / dismissed alerts</text>
+<line x1="890" y1="706" x2="930" y2="760" stroke="#c2255c" stroke-width="2" marker-start="url(#a-pink)" marker-end="url(#a-pink)"/>
+<text x="864" y="736" fill="#c2255c" font-size="12">tool</text>
+
+<!-- postgres <-> monitor, dashboard -->
+<polyline points="1172,396 1172,560 1172,586" fill="none" stroke="#2f9e44" stroke-width="2" marker-end="url(#a-green)"/>
+<text x="1182" y="474" fill="#2f9e44" font-size="12">reads the log,</text>
+<text x="1182" y="489" fill="#2f9e44" font-size="12">writes flags</text>
+<polyline points="584,640 610,640 610,520 1132,520 1132,398" fill="none" stroke="#3b5bdb" stroke-width="2" marker-start="url(#a-indigo)" marker-end="url(#a-indigo)"/>
+<text x="880" y="512" fill="#3b5bdb" font-size="12">reads the log · writes the kill switch</text>
+
+<!-- you <-> dashboard, monitor -->
+<polyline points="90,420 90,675 214,675" fill="none" stroke="#0c8599" stroke-width="2" marker-start="url(#a-teal)" marker-end="url(#a-teal)"/>
+<text x="100" y="600" fill="#0c8599" font-size="13">browser</text>
+<text x="100" y="616" fill="#0c8599" font-size="13">:4141</text>
+<polyline points="70,420 70,895 900,895 900,884" fill="none" stroke="#0c8599" stroke-width="2" marker-end="url(#a-teal)"/>
+<text x="214" y="887" fill="#0c8599" font-size="13">ssh :2223 · log in once with your Claude plan</text>
+</svg>

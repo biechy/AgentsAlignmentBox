@@ -1,0 +1,26 @@
+#!/bin/bash
+# Operator helper in the monitor container.
+#   aab-monitor once        one review cycle now (rules + model), prints the result
+#   aab-monitor rules       one cycle, rules only
+#   aab-monitor status      last monitor cycles
+#   aab-monitor tabular     tool calls with the highest anomaly scores (tabular model)
+#   aab-monitor sql "..."   read-only query on the log
+cd /app
+case "${1:-}" in
+  once)   exec python3 run.py --once ;;
+  rules)  exec python3 run.py --once --rules-only ;;
+  status) exec python3 - <<'PY'
+import db, json
+c = db.connect()
+for r in db._rows(c, "SELECT id, ts_start, backend, model, reviewed, n_signals, n_rule_flags,"
+                     " n_model_flags, stopped, left(coalesce(error, summary), 300) AS note"
+                     " FROM monitor_runs ORDER BY id DESC LIMIT 10"):
+    print(json.dumps(r, default=str))
+PY
+  ;;
+  tabular) exec python3 -c 'import db, json, tabular
+for r in tabular.top_scores(db.connect(), min_score=0.0, limit=20): print(json.dumps(r, default=str))' ;;
+  sql)    shift; exec python3 -c 'import db,json,sys
+for r in db.query(db.connect(), sys.argv[1]): print(json.dumps(r, default=str))' "$1" ;;
+  *) echo "usage: aab-monitor once|rules|status|tabular|sql \"SELECT ...\""; exit 2 ;;
+esac

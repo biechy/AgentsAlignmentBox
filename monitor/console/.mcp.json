@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "aab": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["/app/mcp_server.py"]
+    }
+  }
+}

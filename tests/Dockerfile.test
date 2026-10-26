@@ -1,0 +1,7 @@
+# Test runner image: the proxy's Python + mitmproxy, plus the monitor's and test deps.
+#   docker compose build proxy && docker build -t aab-test -f tests/Dockerfile.test tests
+FROM aab-proxy
+USER root
+RUN pip install --no-cache-dir pytest anthropic==2.1.0
+WORKDIR /repo
+ENTRYPOINT ["python", "-m", "pytest"]

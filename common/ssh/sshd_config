@@ -1,0 +1,16 @@
+# AgentsAlignmentBox: SSH access to the sandbox and the monitor (included first, so these
+# values win over Debian's defaults). setup-sshd.sh adds 00-auth.conf before this file.
+HostKey /etc/ssh/keys/ssh_host_ed25519_key
+PermitRootLogin no
+AuthorizedKeysFile /etc/aab/authorized_keys
+KbdInteractiveAuthentication no
+PermitEmptyPasswords no
+UsePAM yes
+X11Forwarding no
+AllowTcpForwarding local        # e.g. ssh -L 1455:localhost:1455 for `codex login`
+AllowAgentForwarding no
+PermitTunnel no
+GatewayPorts no
+PrintMotd no
+ClientAliveInterval 60
+ClientAliveCountMax 10

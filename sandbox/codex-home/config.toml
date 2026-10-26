@@ -1,0 +1,4 @@
+# Codex defaults in the AgentsAlignmentBox sandbox. The container is the sandbox:
+# Codex's own sandbox (bubblewrap) cannot run here and would block the network.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"

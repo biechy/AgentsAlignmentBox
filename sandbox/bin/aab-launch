@@ -1,0 +1,52 @@
+#!/bin/bash
+# Forced command of the dashboard's launcher key (never an interactive shell):
+#   run claude|codex   start a headless agent; the prompt is read from stdin
+#   list               headless runs still alive
+#   status             open SSH sessions, running claude / codex, live runs (one JSON line)
+#   stop <run>         stop a run (its whole process group)
+set -euo pipefail
+RUNS=/workspace/.aab-runs
+mkdir -p "$RUNS"
+read -r verb arg _ <<< "${SSH_ORIGINAL_COMMAND:-}"
+
+case "$verb" in
+  run)
+    [ "$arg" = claude ] || [ "$arg" = codex ] || { echo '{"ok":false,"error":"engine must be claude or codex"}'; exit 2; }
+    prompt=$(head -c 200000)
+    [ -n "${prompt//[[:space:]]/}" ] || { echo '{"ok":false,"error":"empty prompt"}'; exit 2; }
+    id="$(date -u +%Y%m%d-%H%M%S)-$arg-$$"
+    printf '%s' "$prompt" > "$RUNS/$id.prompt"
+    cd /workspace
+    # Its own session tag, so the proxy compares its agents only with each other.
+    hp=${HTTPS_PROXY#*://}; hp=${hp#*@}
+    export AAB_SESSION="aabr-$id"
+    export HTTP_PROXY="http://$AAB_SESSION:x@$hp" HTTPS_PROXY="http://$AAB_SESSION:x@$hp"
+    export http_proxy="$HTTP_PROXY" https_proxy="$HTTPS_PROXY"
+    if [ "$arg" = claude ]; then
+      setsid nohup claude -p --dangerously-skip-permissions "$prompt" < /dev/null > "$RUNS/$id.log" 2>&1 &
+    else
+      setsid nohup codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "$prompt" \
+        < /dev/null > "$RUNS/$id.log" 2>&1 &
+    fi
+    echo "$!" > "$RUNS/$id.pid"
+    printf '{"ok":true,"run":"%s","pid":%s,"log":"%s"}\n' "$id" "$!" "$RUNS/$id.log"
+    ;;
+  list)
+    for f in "$RUNS"/*.pid; do
+      [ -e "$f" ] || continue
+      pid=$(cat "$f"); id=$(basename "$f" .pid)
+      if kill -0 "$pid" 2>/dev/null; then printf '{"run":"%s","pid":%s}\n' "$id" "$pid"; fi
+    done
+    ;;
+  status)
+    exec /usr/local/bin/aab-status
+    ;;
+  stop)
+    [[ "$arg" =~ ^[0-9A-Za-z-]+$ ]] && [ -f "$RUNS/$arg.pid" ] || { echo '{"ok":false,"error":"unknown run"}'; exit 2; }
+    pid=$(cat "$RUNS/$arg.pid")
+    kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+    echo '{"ok":true}'
+    ;;
+  *)
+    echo '{"ok":false,"error":"usage: run claude|codex, list, status, stop <run>"}'; exit 2 ;;
+esac

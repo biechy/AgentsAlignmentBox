@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [{"type": "command", "command": "python3 /opt/sandbox/tag_tool_call.py"}]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [{"type": "command", "command": "python3 /opt/sandbox/tag_tool_call.py"}]
+      }
+    ]
+  }
+}

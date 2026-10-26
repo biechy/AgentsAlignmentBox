@@ -1,0 +1,9 @@
+{
+  "enableAllProjectMcpServers": true,
+  "permissions": {
+    "allow": ["mcp__aab"]
+  },
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  }
+}

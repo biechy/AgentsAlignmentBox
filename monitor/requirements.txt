@@ -1,0 +1,4 @@
+anthropic==2.1.0
+psycopg[binary]==3.2.3
+numpy
+scikit-learn

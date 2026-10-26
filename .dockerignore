@@ -1,0 +1,8 @@
+.git
+.env
+workspace
+tests
+docs
+examples
+**/__pycache__
+**/.pytest_cache
